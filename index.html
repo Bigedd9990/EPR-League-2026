@@ -201,37 +201,78 @@
       destination.innerHTML = tableHtml;
     }
 
-    function loadTournamentData() {
-      if (typeof Papa === "undefined") {
-        showError("The CSV parsing library did not load. Check your internet connection or whether the Papa Parse CDN is blocked.");
-        return;
-      }
+    async function loadTournamentData() {
+  setStatus("loading", "Syncing tournament data…");
 
-      setStatus("loading", "Syncing tournament data…");
+  try {
+    const separator = csvSourceUrl.includes("?") ? "&" : "?";
+    const freshUrl =
+      csvSourceUrl + separator + "_refresh=" + Date.now();
 
-      const separator = csvSourceUrl.includes("?") ? "&" : "?";
-      const freshUrl = csvSourceUrl + separator + "_refresh=" + Date.now();
+    const response = await fetch(freshUrl, {
+      method: "GET",
+      cache: "no-store"
+    });
 
-      Papa.parse(freshUrl, {
-        download: true,
-        header: false,
-        skipEmptyLines: true,
-        complete: function(results) {
-          try {
-            if (results.errors && results.errors.length > 0) {
-              const seriousError = results.errors.find(error => error.code !== "TooManyFields");
-              if (seriousError) {
-                console.warn("CSV parsing warning:", seriousError);
-              }
+    if (!response.ok) {
+      throw new Error(
+        `Google Sheets returned HTTP ${response.status}`
+      );
+    }
+
+    const csvText = await response.text();
+
+    if (
+      !csvText.trim() ||
+      csvText.trimStart().startsWith("<!DOCTYPE") ||
+      csvText.trimStart().startsWith("<html")
+    ) {
+      throw new Error(
+        "The response was HTML instead of CSV data."
+      );
+    }
+
+    const rows = csvText
+      .replace(/^\uFEFF/, "")
+      .split(/\r?\n/)
+      .filter(line => line.trim() !== "")
+      .map(line => {
+        const fields = [];
+        let field = "";
+        let quoted = false;
+
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+
+          if (ch === '"') {
+            if (quoted && line[i + 1] === '"') {
+              field += '"';
+              i++;
+            } else {
+              quoted = !quoted;
             }
-            renderTable(results.data);
-            setStatus("connected", "Live Syncing — refreshes every 15s");
-            lastUpdated.textContent = "Last updated: " + new Date().toLocaleTimeString();
-          } catch (error) {
-            console.error("Dashboard rendering error:", error);
-            showError(error.message || "The data was received but could not be rendered.");
+          } else if (ch === "," && !quoted) {
+            fields.push(field);
+            field = "";
+          } else {
+            field += ch;
           }
-        },
+        }
+
+        fields.push(field);
+        return fields;
+      });
+
+    renderTable(rows);
+    setStatus("connected", "Live Syncing — refreshes every 15s");
+    lastUpdated.textContent =
+      "Last updated: " + new Date().toLocaleTimeString();
+
+  } catch (error) {
+    console.error("Tournament dashboard error:", error);
+    showError(error.message || "Unable to load tournament data.");
+  }
+}
         error: function(error) {
           console.error("Google Sheets download error:", error);
           showError(error && error.message ? error.message : "The CSV download failed. Check the published link and sharing settings.");
