@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Football Tournament Results</title>
+    <style>
+        :root {
+            --primary-color: #1b4332; /* Deep football pitch green */
+            --secondary-color: #40916c;
+            --background-color: #f4f6f9;
+            --card-background: #ffffff;
+            --text-color: #2d3748;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            text-align: center;
+            padding: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 2.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        header p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        main {
+            width: 90%;
+            max-width: 1200px;
+            margin: 2rem 0;
+        }
+
+        .table-container {
+            background-color: var(--card-background);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            overflow: hidden;
+        }
+
+        /* Responsive iframe container to maintain aspect ratio if needed, or fixed height */
+        .iframe-wrapper {
+            position: relative;
+            width: 100%;
+            height: 650px; /* Adjusted to comfortably fit roughly 21 rows */
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Tournament Standings & Results</h1>
+        <p>Live Football Tournament Match Center</p>
+    </header>
+
+    <main>
+        <div class="table-container">
+            <div class="iframe-wrapper">
+                <!-- Embedded Google Sheet Link -->
+                <iframe src="https://google.com"></iframe>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        &copy; 2026 Football Tournament Committee. All rights reserved.
+    </footer>
+
+</body>
+</html>
