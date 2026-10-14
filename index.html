@@ -201,8 +201,16 @@
       destination.innerHTML = tableHtml;
     }
 
-    async function loadTournamentData() {
+    let isLoading = false;
+
+async function loadTournamentData() {
+  if (isLoading) return;
+  isLoading = true;
+
   setStatus("loading", "Syncing tournament data…");
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
   try {
     const separator = csvSourceUrl.includes("?") ? "&" : "?";
@@ -210,75 +218,56 @@
       csvSourceUrl + separator + "_refresh=" + Date.now();
 
     const response = await fetch(freshUrl, {
-      method: "GET",
-      cache: "no-store"
+      cache: "no-store",
+      signal: controller.signal
     });
 
     if (!response.ok) {
-      throw new Error(
-        `Google Sheets returned HTTP ${response.status}`
-      );
+      throw new Error("Google Sheets returned HTTP " + response.status);
     }
 
     const csvText = await response.text();
 
-    if (
-      !csvText.trim() ||
-      csvText.trimStart().startsWith("<!DOCTYPE") ||
-      csvText.trimStart().startsWith("<html")
-    ) {
-      throw new Error(
-        "The response was HTML instead of CSV data."
-      );
+    if (!csvText.trim()) {
+      throw new Error("Google Sheets returned an empty CSV.");
     }
 
-    const rows = csvText
-      .replace(/^\uFEFF/, "")
-      .split(/\r?\n/)
-      .filter(line => line.trim() !== "")
-      .map(line => {
-        const fields = [];
-        let field = "";
-        let quoted = false;
+    if (/^\s*<(?:!doctype|html)\b/i.test(csvText)) {
+      throw new Error("Google returned HTML instead of CSV data.");
+    }
 
-        for (let i = 0; i < line.length; i++) {
-          const ch = line[i];
+    if (typeof Papa === "undefined") {
+      throw new Error("Papa Parse library did not load.");
+    }
 
-          if (ch === '"') {
-            if (quoted && line[i + 1] === '"') {
-              field += '"';
-              i++;
-            } else {
-              quoted = !quoted;
-            }
-          } else if (ch === "," && !quoted) {
-            fields.push(field);
-            field = "";
-          } else {
-            field += ch;
-          }
-        }
+    const results = Papa.parse(csvText, {
+      skipEmptyLines: true
+    });
 
-        fields.push(field);
-        return fields;
-      });
+    if (results.errors && results.errors.length) {
+      console.warn("CSV parsing warnings:", results.errors);
+    }
 
-    renderTable(rows);
+    renderTable(results.data);
+
     setStatus("connected", "Live Syncing — refreshes every 15s");
     lastUpdated.textContent =
       "Last updated: " + new Date().toLocaleTimeString();
 
   } catch (error) {
-    console.error("Tournament dashboard error:", error);
-    showError(error.message || "Unable to load tournament data.");
+    console.error("Tournament data loading failed:", error);
+
+    const message = error.name === "AbortError"
+      ? "Google Sheets took too long to respond. Please retry."
+      : error.message || "Unable to load tournament data.";
+
+    showError(message);
+
+  } finally {
+    clearTimeout(timeoutId);
+    isLoading = false;
   }
 }
-        error: function(error) {
-          console.error("Google Sheets download error:", error);
-          showError(error && error.message ? error.message : "The CSV download failed. Check the published link and sharing settings.");
-        }
-      });
-    }
 
     loadTournamentData();
     setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
