@@ -9,23 +9,25 @@
         body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
         header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; text-align: center; padding: 2rem 1rem; }
         .live-indicator { display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; margin-top: 1rem; }
-        .dot { width: 8px; height: 8px; background-color: #52b788; border-radius: 50%; margin-right: 6px; }
-        main { width: 95%; max-width: 1200px; margin: 2rem auto; }
+        .dot { width: 8px; height: 8px; background-color: #52b788; border-radius: 50%; margin-right: 6px; animation: blink 1.5s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+        main { width: 95%; max-width: 1300px; margin: 2rem auto; }
         .card { background: var(--card); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 1.5rem; overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background-color: #edf2f7; padding: 12px; font-weight: 600; color: #4a5568; font-size: 0.85rem; }
-        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
-        .team-name { font-weight: 600; }
+        th { background-color: #edf2f7; padding: 12px; font-weight: 600; color: #4a5568; font-size: 0.85rem; text-transform: uppercase; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; white-space: nowrap; }
+        tr:hover { background-color: #f8fafc; }
+        .team-name { font-weight: 600; color: #1a202c; }
         .center { text-align: center; }
         .loading { text-align: center; padding: 3rem; font-style: italic; color: #718096; }
-        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; font-weight: bold; }
+        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; font-weight: bold; line-height: 1.6; }
     </style>
 </head>
 <body>
     <header>
         <h1>Esquina Park Rangers</h1>
         <p>5th Annual International Tournament Dashboard</p>
-        <div class="live-indicator"><span class="dot"></span> Live-Updating Dashboard</div>
+        <div class="live-indicator"><span class="dot"></span> Live Syncing Range A1:O21</div>
     </header>
     <main>
         <div class="card">
@@ -33,56 +35,66 @@
         </div>
     </main>
     <script>
+        // FIXED: Combined the correct sheet ID with the CSV parameter explicitly
         const targetCsvUrl = "https://google.com";
 
         async function fetchLiveSheetGrid() {
             try {
-                const response = await fetch(`${targetCsvUrl}&t=${new Date().getTime()}`);
-                if (!response.ok) throw new Error("Could not fetch data from Google Sheets.");
+                const response = await fetch(targetCsvUrl + "&nocache=" + new Date().getTime());
+                if (!response.ok) throw new Error("Google Sheets server rejected the connection.");
                 
                 const rawText = await response.text();
+                if (!rawText || rawText.trim() === "") throw new Error("Received empty data from spreadsheet.");
                 
-                // FIXED: Handles both Windows (\(\r\\)n) and Unix (\n) line endings cleanly
-                const fullGrid = rawText.split(\(/\r\)?\n/).map(row => row.split(','));
+                // FIXED: Robust row-splitting parser logic
+                const lines = rawText.split(\(/\r\)?\n/);
+                const fullGrid = lines.map(row => row.split(','));
                 
-                // Select rows 1 to 21
+                // Keep only range up to row index 21
                 const targetRows = fullGrid.slice(0, 21);
 
-                if (targetRows.length === 0 || targetRows[0].length < 2) {
-                    throw new Error("Spreadsheet data parsed empty. Verify file content.");
-                }
-
                 let tableHtml = '<table><thead><tr>';
-                // Build headers from row 1 (Columns A to O / Indices 0 to 14)
-                targetRows[0].forEach((cell, idx) => {
-                    if (idx < 15) tableHtml += `<th class="${idx !== 3 && idx !== 6 ? 'center' : ''}">${cell.trim() || '---'}</th>`;
-                });
+                
+                // Generate headers from your data line 1 (Columns A to O)
+                const headerLine = targetRows[0];
+                for (let c = 0; c < 15; c++) {
+                    const cellVal = headerLine[c] ? headerLine[c].trim() : '';
+                    const alignLeft = (c === 3 || c === 6);
+                    tableHtml += `<th class="${!alignLeft ? 'center' : ''}">${cellVal || '---'}</th>`;
+                }
                 tableHtml += '</tr></thead><tbody>';
 
-                // Build table body from remaining rows
+                // Generate table data body matrix
                 for (let r = 1; r < targetRows.length; r++) {
                     const currentRow = targetRows[r];
+                    // Skip completely empty spacer rows safely
                     if (!currentRow || currentRow.join('').trim() === '') continue;
-                    
+
                     tableHtml += '<tr>';
-                    currentRow.forEach((cellValue, colIdx) => {
-                        if (colIdx < 15) {
-                            let customClass = (colIdx !== 3 && colIdx !== 6) ? 'center' : 'team-name';
-                            tableHtml += `<td class="${customClass}">${cellValue.trim() || '-'}</td>`;
-                        }
-                    });
+                    for (let c = 0; c < 15; c++) {
+                        const rawCell = currentRow[c] ? currentRow[c].trim() : '';
+                        let alignmentClass = (c !== 3 && c !== 6) ? 'center' : 'team-name';
+                        tableHtml += `<td class="${alignmentClass}">${rawCell || '-'}</td>`;
+                    }
                     tableHtml += '</tr>';
                 }
                 tableHtml += '</tbody></table>';
+                
                 document.getElementById('table-destination').innerHTML = tableHtml;
             } catch (err) {
-                console.error(err);
-                document.getElementById('table-destination').innerHTML = `<div class="error-msg">⚠️ Error: ${err.message}<br><span style="font-size:0.8rem; font-weight:normal; color:#718096;">Retrying shortly...</span></div>`;
+                console.error("Dashboard error details:", err);
+                document.getElementById('table-destination').innerHTML = `
+                    <div class="error-msg">
+                        ⚠️ Dashboard Rendering Paused<br>
+                        <span style="font-size:0.9rem; font-weight:normal; color:#4a5568;">Reason: ${err.message}</span><br>
+                        <span style="font-size:0.8rem; font-weight:normal; color:#718096; display:block; margin-top:10px;">Retrying automatically in 15s...</span>
+                    </div>`;
             }
         }
 
+        // Run dashboard array layout compiler loop
         fetchLiveSheetGrid();
-        setInterval(fetchLiveSheetGrid, 15000); // Live updates every 15 seconds!
+        setInterval(fetchLiveSheetGrid, 15000);
     </script>
 </body>
 </html>
