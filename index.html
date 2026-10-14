@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esquina Park Rangers Tournament</title>
+    <style>
+        :root { --primary: #1b4332; --accent: #40916c; --bg: #f4f6f9; --card: #ffffff; --text: #2d3748; }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; text-align: center; padding: 2rem 1rem; }
+        .live-indicator { display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; margin-top: 1rem; }
+        .dot { width: 8px; height: 8px; background-color: #52b788; border-radius: 50%; margin-right: 6px; }
+        main { width: 95%; max-width: 1200px; margin: 2rem auto; }
+        .card { background: var(--card); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 1.5rem; overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; }
+        th { background-color: #edf2f7; padding: 12px; font-weight: 600; color: #4a5568; font-size: 0.85rem; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; }
+        .team-name { font-weight: 600; }
+        .center { text-align: center; }
+        .loading { text-align: center; padding: 3rem; font-style: italic; color: #718096; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Esquina Park Rangers</h1>
+        <p>5th Annual International Tournament Dashboard</p>
+        <div class="live-indicator"><span class="dot"></span> Live-Updating Dashboard</div>
+    </header>
+    <main>
+        <div class="card">
+            <div id="table-destination"><div class="loading">Connecting to live tournament data...</div></div>
+        </div>
+    </main>
+    <script>
+        const targetCsvUrl = "https://google.com";
+
+        async function fetchLiveSheetGrid() {
+            try {
+                // The cache buster works flawlessly once hosted on GitLab
+                const response = await fetch(`${targetCsvUrl}&t=${new Date().getTime()}`);
+                const rawText = await response.text();
+                const fullGrid = rawText.split('\n').map(row => row.split(','));
+                const targetRows = fullGrid.slice(0, 21);
+
+                let tableHtml = '<table><thead><tr>';
+                targetRows[0].forEach((cell, idx) => {
+                    if (idx < 15) tableHtml += `<th class="${idx !== 3 && idx !== 6 ? 'center' : ''}">${cell.trim() || '---'}</th>`;
+                });
+                tableHtml += '</tr></thead><tbody>';
+
+                for (let r = 1; r < targetRows.length; r++) {
+                    const currentRow = targetRows[r];
+                    if (!currentRow || currentRow.join('').trim() === '') continue;
+                    tableHtml += '<tr>';
+                    currentRow.forEach((cellValue, colIdx) => {
+                        if (colIdx < 15) {
+                            let customClass = (colIdx !== 3 && colIdx !== 6) ? 'center' : 'team-name';
+                            tableHtml += `<td class="${customClass}">${cellValue.trim() || '-'}</td>`;
+                        }
+                    });
+                    tableHtml += '</tr>';
+                }
+                tableHtml += '</tbody></table>';
+                document.getElementById('table-destination').innerHTML = tableHtml;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        fetchLiveSheetGrid();
+        setInterval(fetchLiveSheetGrid, 15000); // Live updates every 15 seconds!
+    </script>
+</body>
+</html>
