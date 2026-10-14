@@ -18,6 +18,7 @@
         .team-name { font-weight: 600; }
         .center { text-align: center; }
         .loading { text-align: center; padding: 3rem; font-style: italic; color: #718096; }
+        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -36,21 +37,33 @@
 
         async function fetchLiveSheetGrid() {
             try {
-                // The cache buster works flawlessly once hosted on GitLab
                 const response = await fetch(`${targetCsvUrl}&t=${new Date().getTime()}`);
+                if (!response.ok) throw new Error("Could not fetch data from Google Sheets.");
+                
                 const rawText = await response.text();
-                const fullGrid = rawText.split('\n').map(row => row.split(','));
+                
+                // FIXED: Handles both Windows (\(\r\\)n) and Unix (\n) line endings cleanly
+                const fullGrid = rawText.split(\(/\r\)?\n/).map(row => row.split(','));
+                
+                // Select rows 1 to 21
                 const targetRows = fullGrid.slice(0, 21);
 
+                if (targetRows.length === 0 || targetRows[0].length < 2) {
+                    throw new Error("Spreadsheet data parsed empty. Verify file content.");
+                }
+
                 let tableHtml = '<table><thead><tr>';
+                // Build headers from row 1 (Columns A to O / Indices 0 to 14)
                 targetRows[0].forEach((cell, idx) => {
                     if (idx < 15) tableHtml += `<th class="${idx !== 3 && idx !== 6 ? 'center' : ''}">${cell.trim() || '---'}</th>`;
                 });
                 tableHtml += '</tr></thead><tbody>';
 
+                // Build table body from remaining rows
                 for (let r = 1; r < targetRows.length; r++) {
                     const currentRow = targetRows[r];
                     if (!currentRow || currentRow.join('').trim() === '') continue;
+                    
                     tableHtml += '<tr>';
                     currentRow.forEach((cellValue, colIdx) => {
                         if (colIdx < 15) {
@@ -64,8 +77,10 @@
                 document.getElementById('table-destination').innerHTML = tableHtml;
             } catch (err) {
                 console.error(err);
+                document.getElementById('table-destination').innerHTML = `<div class="error-msg">⚠️ Error: ${err.message}<br><span style="font-size:0.8rem; font-weight:normal; color:#718096;">Retrying shortly...</span></div>`;
             }
         }
+
         fetchLiveSheetGrid();
         setInterval(fetchLiveSheetGrid, 15000); // Live updates every 15 seconds!
     </script>
