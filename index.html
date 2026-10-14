@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- FIXED: Safely auto-refreshes the whole page every 30 seconds without breaking any links -->
+    <meta http-equiv="refresh" content="30">
     <title>Esquina Park Rangers Live Tournament Dashboard</title>
     <style>
         :root { 
@@ -59,11 +61,10 @@
             overflow: hidden;
         }
 
-        /* Seamless window container optimized to mask out Google's top interface cleanly */
         .dashboard-window {
             position: relative;
             width: 100%;
-            height: 590px; /* Sized perfectly to display your exact A1 to O21 grid area */
+            height: 590px; 
             border-radius: 8px;
             border: 1px solid #e2e8f0;
             overflow: hidden;
@@ -71,7 +72,7 @@
         
         iframe {
             position: absolute;
-            top: -45px; /* Slices out the default spreadsheet title banner bar cleanly */
+            top: -45px; 
             left: 0;
             width: 100%;
             height: calc(100% + 45px);
@@ -84,29 +85,17 @@
     <header>
         <h1>Esquina Park Rangers</h1>
         <p>Live International Tournament Dashboard</p>
-        <div class="live-indicator"><span class="dot"></span> Live Sync Enabled (Auto-Refreshing)</div>
+        <div class="live-indicator"><span class="dot"></span> Live Auto-Updating (Range A1:O21)</div>
     </header>
 
     <main>
         <div class="card">
             <div class="dashboard-window">
-                <!-- Google's Native Web Embed: Runs immediately and completely bypasses browser security errors -->
-                <iframe id="live-tournament-frame" src="https://google.com"></iframe>
+                <!-- Clean, untouched Google HTML output stream: Immune to javascript errors and blocks -->
+                <iframe src="https://google.com"></iframe>
             </div>
         </div>
     </main>
-
-    <script>
-        // Background live updater loops
-        setInterval(function() {
-            const frame = document.getElementById('live-tournament-frame');
-            if (frame) {
-                const cleanSourceUrl = "https://google.com";
-                // Appends a tracking variable to clear browser cache and force clean real-time updates smoothly
-                frame.src = cleanSourceUrl + "&nocache=" + new Date().getTime();
-            }
-        }, 15000); // Forces updates silently behind the scenes every 15 seconds!
-    </script>
 
 </body>
 </html>
