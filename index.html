@@ -3,97 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esquina Park Rangers Tournament</title>
+    <title>Esquina Park Rangers Tournament Standings</title>
     <style>
-        :root { --primary: #1b4332; --accent: #40916c; --bg: #f4f6f9; --card: #ffffff; --text: #2d3748; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
-        header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; text-align: center; padding: 2rem 1rem; }
-        .live-indicator { display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; margin-top: 1rem; }
+        :root { 
+            --primary: #1b4332; 
+            --accent: #40916c; 
+            --bg: #f4f6f9; 
+            --card: #ffffff; 
+            --text: #2d3748; 
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        header { background: linear-gradient(135deg, var(--primary), var(--accent)); color: white; text-align: center; padding: 2rem 1rem; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        header h1 { margin: 0; font-size: 1.8rem; text-transform: uppercase; letter-spacing: 1px; }
+        header p { margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1rem; }
+        
+        .live-indicator { display: inline-flex; align-items: center; background: rgba(255,255,255,0.2); padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem; margin-top: 1rem; font-weight: bold; }
         .dot { width: 8px; height: 8px; background-color: #52b788; border-radius: 50%; margin-right: 6px; animation: blink 1.5s infinite; }
         @keyframes blink { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-        main { width: 95%; max-width: 1300px; margin: 2rem auto; }
+        
+        main { width: 95%; max-width: 1000px; margin: 2rem auto; }
         .card { background: var(--card); border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 1.5rem; overflow-x: auto; }
+        .tournament-title { color: var(--primary); font-size: 1.3rem; margin-top: 0; margin-bottom: 1.5rem; text-align: center; font-weight: bold; border-bottom: 2px solid #edf2f7; padding-bottom: 0.75rem; }
+        
         table { width: 100%; border-collapse: collapse; text-align: left; }
-        th { background-color: #edf2f7; padding: 12px; font-weight: 600; color: #4a5568; font-size: 0.85rem; text-transform: uppercase; }
-        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 0.9rem; white-space: nowrap; }
+        th { background-color: #edf2f7; padding: 12px 10px; font-weight: 600; color: #4a5568; font-size: 0.85rem; text-transform: uppercase; }
+        td { padding: 10px 10px; border-bottom: 1px solid #e2e8f0; font-size: 0.95rem; }
         tr:hover { background-color: #f8fafc; }
-        .team-name { font-weight: 600; color: #1a202c; }
-        .center { text-align: center; }
+        
+        .rank-col { font-weight: bold; text-align: center; color: #718096; width: 60px; }
+        .team-col { font-weight: 600; color: #1a202c; }
+        .num-col { text-align: center; width: 55px; }
+        .pts-col { font-weight: bold; color: var(--primary); background-color: #e8f5e9; text-align: center; width: 65px; border-radius: 4px; }
+        
         .loading { text-align: center; padding: 3rem; font-style: italic; color: #718096; }
-        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; font-weight: bold; line-height: 1.6; }
+        .error-msg { text-align: center; color: #e53e3e; padding: 2rem; font-weight: bold; }
     </style>
 </head>
 <body>
+
     <header>
         <h1>Esquina Park Rangers</h1>
-        <p>5th Annual International Tournament Dashboard</p>
-        <div class="live-indicator"><span class="dot"></span> Live Syncing Range A1:O21</div>
+        <p>Live International Tournament Standings</p>
+        <div class="live-indicator"><span class="dot"></span> Live Auto-Updating (Every 15s)</div>
     </header>
+
     <main>
         <div class="card">
-            <div id="table-destination"><div class="loading">Connecting to live tournament data...</div></div>
+            <!-- Dynamic Custom Subheader pulled straight from row 1 of your sheet -->
+            <div id="dynamic-title" class="tournament-title">Esquina Park Rangers International Tournament</div>
+            <div id="table-destination">
+                <div class="loading">Loading live tournament leaderboard...</div>
+            </div>
         </div>
     </main>
+
     <script>
-        // FIXED: Combined the correct sheet ID with the CSV parameter explicitly
         const targetCsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeEkmGfdMyY5ILwraF8-Axuzx8-U5IAgNO9NYzd9ua-ogBiwaMMKKAq7zpK2lBseMnJ4WAC-AQ1Glv/pub?gid=198337941&single=true&output=csv";
 
         async function fetchLiveSheetGrid() {
             try {
                 const response = await fetch(targetCsvUrl + "&nocache=" + new Date().getTime());
-                if (!response.ok) throw new Error("Google Sheets server rejected the connection.");
+                if (!response.ok) throw new Error("Could not sync with the Google Sheets server.");
                 
                 const rawText = await response.text();
-                if (!rawText || rawText.trim() === "") throw new Error("Received empty data from spreadsheet.");
+                if (!rawText || rawText.trim() === "") throw new Error("Spreadsheet returned blank data.");
                 
-                // FIXED: Robust row-splitting parser logic
-                const lines = rawText.split(\(/\r\)?\n/);
-                const fullGrid = lines.map(row => row.split(','));
+                // Split rows cleanly, removing hidden Windows line return characters
+                const fullGrid = rawText.split(\(/\r\)?\n/).map(row => row.split(','));
                 
-                // Keep only range up to row index 21
-                const targetRows = fullGrid.slice(0, 21);
+                // Row index 0: Title text
+                if(fullGrid[0] && fullGrid[0][3]) {
+                    const parsedTitle = fullGrid[0].join(' ').replace(/,+/g, '').trim();
+                    if(parsedTitle) {
+                        document.getElementById('dynamic-title').innerText = parsedTitle;
+                    }
+                }
+
+                // Row index 1: Table Headers (Rank, Team, Pld, W, D, L, GF, GA, GD, Pts)
+                const headerRow = fullGrid[1];
+                if (!headerRow || headerRow.length < 4) throw new Error("Standings header row not found.");
 
                 let tableHtml = '<table><thead><tr>';
-                
-                // Generate headers from your data line 1 (Columns A to O)
-                const headerLine = targetRows[0];
-                for (let c = 0; c < 15; c++) {
-                    const cellVal = headerLine[c] ? headerLine[c].trim() : '';
-                    const alignLeft = (c === 3 || c === 6);
-                    tableHtml += `<th class="${!alignLeft ? 'center' : ''}">${cellVal || '---'}</th>`;
-                }
+                tableHtml += `<th style="text-align: center;">Pos</th>`;
+                tableHtml += `<th>Team</th>`;
+                tableHtml += `<th style="text-align: center;">Pld</th>`;
+                tableHtml += `<th style="text-align: center;">W</th>`;
+                tableHtml += `<th style="text-align: center;">D</th>`;
+                tableHtml += `<th style="text-align: center;">L</th>`;
+                tableHtml += `<th style="text-align: center;">GF</th>`;
+                tableHtml += `<th style="text-align: center;">GA</th>`;
+                tableHtml += `<th style="text-align: center;">GD</th>`;
+                tableHtml += `<th style="text-align: center;">Pts</th>`;
                 tableHtml += '</tr></thead><tbody>';
 
-                // Generate table data body matrix
-                for (let r = 1; r < targetRows.length; r++) {
-                    const currentRow = targetRows[r];
-                    // Skip completely empty spacer rows safely
-                    if (!currentRow || currentRow.join('').trim() === '') continue;
+                // Extract exact data rows up to row 17 (Positions 1 through 16)
+                for (let r = 2; r <= 17; r++) {
+                    const row = fullGrid[r];
+                    // Verify row exists and has valid team name data cell entry
+                    if (!row || !row[3] || row[3].trim() === '') continue;
 
-                    tableHtml += '<tr>';
-                    for (let c = 0; c < 15; c++) {
-                        const rawCell = currentRow[c] ? currentRow[c].trim() : '';
-                        let alignmentClass = (c !== 3 && c !== 6) ? 'center' : 'team-name';
-                        tableHtml += `<td class="${alignmentClass}">${rawCell || '-'}</td>`;
-                    }
-                    tableHtml += '</tr>';
+                    const rank = row[1] ? row[1].trim() : (r - 1);
+                    const teamName = row[3].trim();
+                    const pld = row[4] ? row[4].trim() : '0';
+                    const w = row[5] ? row[5].trim() : '0';
+                    const d = row[6] ? row[6].trim() : '0';
+                    const l = row[7] ? row[7].trim() : '0';
+                    const gf = row[8] ? row[8].trim() : '0';
+                    const ga = row[9] ? row[9].trim() : '0';
+                    const gd = row[10] ? row[10].trim() : '0';
+                    const pts = row[11] ? row[11].trim() : '0';
+
+                    tableHtml += `
+                        <tr>
+                            <td class="rank-col">${rank}</td>
+                            <td class="team-col">${teamName}</td>
+                            <td class="num-col">${pld}</td>
+                            <td class="num-col">${w}</td>
+                            <td class="num-col">${d}</td>
+                            <td class="num-col">${l}</td>
+                            <td class="num-col">${gf}</td>
+                            <td class="num-col">${ga}</td>
+                            <td class="num-col">${gd}</td>
+                            <td class="pts-col">${pts}</td>
+                        </tr>
+                    `;
                 }
+
                 tableHtml += '</tbody></table>';
-                
                 document.getElementById('table-destination').innerHTML = tableHtml;
+
             } catch (err) {
-                console.error("Dashboard error details:", err);
+                console.error(err);
                 document.getElementById('table-destination').innerHTML = `
                     <div class="error-msg">
-                        ⚠️ Dashboard Rendering Paused<br>
-                        <span style="font-size:0.9rem; font-weight:normal; color:#4a5568;">Reason: ${err.message}</span><br>
-                        <span style="font-size:0.8rem; font-weight:normal; color:#718096; display:block; margin-top:10px;">Retrying automatically in 15s...</span>
+                        ⚠️ Sync Error: ${err.message}<br>
+                        <span style="font-size:0.8rem; font-weight:normal; color:#718096;">Retrying data connection shortly...</span>
                     </div>`;
             }
         }
 
-        // Run dashboard array layout compiler loop
+        // Initialize engine instantly
         fetchLiveSheetGrid();
+
+        // Check for updates quietly every 15 seconds without blinking
         setInterval(fetchLiveSheetGrid, 15000);
     </script>
 </body>
