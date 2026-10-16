@@ -1,119 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Esquina Park Rangers Live Tournament Dashboard</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Esquina Park Rangers Live Tournament Dashboard</title>
 
-    <!-- Secure PapaParse CDN Library Endpoint -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
-    <style>
-        :root {
-            --primary: #1b4332;
-            --accent: #40916c;
-            --bg: #f4f6f9;
-            --card: #ffffff;
-            --text: #2d3748;
-            --muted: #718096;
-            --error: #c53030;
-            --success: #52b788;
-        }
-        * { box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-        }
-        header {
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color: white;
-            text-align: center;
-            padding: 2.5rem 1rem;
-            box-shadow: 0 4px 15px rgba(0,0,0,.1);
-        }
-        header h1 {
-            margin: 0;
-            font-size: clamp(1.5rem, 3vw, 2rem);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        header p { margin: .5rem 0 0; opacity: .9; font-size: 1.1rem; }
-        .live-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            background: rgba(255,255,255,.2);
-            padding: .45rem .85rem;
-            border-radius: 20px;
-            font-size: .85rem;
-            margin-top: 1rem;
-            font-weight: bold;
-        }
-        .dot {
-            width: 8px;
-            height: 8px;
-            background: #cbd5e0;
-            border-radius: 50%;
-            flex: 0 0 8px;
-        }
-        .live-indicator.connected .dot { background: var(--success); animation: blink 1.5s infinite; }
-        .live-indicator.failed .dot { background: #ffb4a2; }
-        @keyframes blink { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
-        main { width: 95%; max-width: 1400px; margin: 2rem auto; }
-        .card {
-            background: var(--card);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0,0,0,.05);
-            padding: clamp(1rem, 2vw, 1.5rem);
-            overflow-x: auto;
-            min-height: 165px;
-        }
-        .table-wrap { width: 100%; overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px; }
-        th {
-            background: #edf2f7;
-            padding: 12px;
-            font-weight: 600;
-            color: #4a5568;
-            text-transform: uppercase;
-            font-size: .85rem;
-            white-space: nowrap;
-        }
-        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: .95rem; white-space: nowrap; }
-        tbody tr:hover { background: #f8fafc; }
-        
-        /* Team layout row adjustments for badges */
-        .team-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .team-badge {
-            width: 24px;
-            height: 24px;
-            object-fit: contain;
-            flex-shrink: 0;
-            background-color: #f7fafc;
-            border-radius: 4px;
-            padding: 2px;
-        }
-        
-        .team-name { font-weight: 600; color: #1a202c; }
-        .pts-cell { font-weight: bold; color: var(--primary); background: #e8f5e9; text-align: center; }
-        .center { text-align: center; }
-        .loading, .error-msg, .empty-msg { text-align: center; padding: 3rem 1rem; }
-        .loading, .empty-msg { font-style: italic; color: var(--muted); }
-        .error-msg { color: var(--error); font-weight: bold; overflow-wrap: anywhere; }
-        .error-detail { display: block; margin-top: .6rem; font-size: .9rem; font-weight: normal; color: var(--muted); }
-        .footer { color: var(--muted); font-size: .8rem; text-align: right; margin-top: 1rem; }
-        .retry { margin-top: 1rem; border: 0; border-radius: 6px; padding: .65rem 1rem; cursor: pointer; background: var(--primary); color: white; font-weight: 600; }
-    </style>
+  <style>
+    :root {
+      --primary: #1b4332;
+      --accent: #40916c;
+      --bg: #f4f6f9;
+      --card: #ffffff;
+      --text: #2d3748;
+      --muted: #718096;
+      --error: #c53030;
+      --success: #52b788;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: white;
+      text-align: center;
+      padding: 2.5rem 1rem;
+      box-shadow: 0 4px 15px rgba(0,0,0,.1);
+    }
+    header h1 {
+      margin: 0;
+      font-size: clamp(1.5rem, 3vw, 2rem);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    header p { margin: .5rem 0 0; opacity: .9; font-size: 1.1rem; }
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255,255,255,.2);
+      padding: .45rem .85rem;
+      border-radius: 20px;
+      font-size: .85rem;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #cbd5e0;
+      border-radius: 50%;
+      flex: 0 0 8px;
+    }
+    .live-indicator.connected .dot { background: var(--success); animation: blink 1.5s infinite; }
+    .live-indicator.failed .dot { background: #ffb4a2; }
+    @keyframes blink { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+    main { width: 95%; max-width: 1400px; margin: 2rem auto; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.05);
+      padding: clamp(1rem, 2vw, 1.5rem);
+      overflow-x: auto;
+      min-height: 165px;
+    }
+    .table-wrap { width: 100%; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px; }
+    th {
+      background: #edf2f7;
+      padding: 12px;
+      font-weight: 600;
+      color: #4a5568;
+      text-transform: uppercase;
+      font-size: .85rem;
+      white-space: nowrap;
+    }
+    td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: .95rem; white-space: nowrap; }
+    tbody tr:hover { background: #f8fafc; }
+    
+    /* TEAM BADGE COLUMN STYLING EXTENSIONS */
+    .badge-layout-flex {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-icon-img {
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+
+    .team-name { font-weight: 600; color: #1a202c; }
+    .pts-cell { font-weight: bold; color: var(--primary); background: #e8f5e9; text-align: center; }
+    .center { text-align: center; }
+    .loading, .error-msg, .empty-msg { text-align: center; padding: 3rem 1rem; }
+    .loading, .empty-msg { font-style: italic; color: var(--muted); }
+    .error-msg { color: var(--error); font-weight: bold; overflow-wrap: anywhere; }
+    .error-detail { display: block; margin-top: .6rem; font-size: .9rem; font-weight: normal; color: var(--muted); }
+    .footer { color: var(--muted); font-size: .8rem; text-align: right; margin-top: 1rem; }
+    .retry { margin-top: 1rem; border: 0; border-radius: 6px; padding: .65rem 1rem; cursor: pointer; background: var(--primary); color: white; font-weight: 600; }
+  </style>
 </head>
 <body>
-
   <header>
     <h1>Esquina Park Rangers</h1>
     <p>5th Annual International Tournament Dashboard</p>
@@ -133,16 +128,14 @@
   </main>
 
   <script>
-    // Live Deployment proxy data script engine path link
-    const csvSourceUrl = "https://google.com";
+    const csvSourceUrl = "https://script.google.com/macros/s/AKfycbxQQB-Fi9liFMcjkULvSWaboQBZ9OTBqrmcxORx0MJU69lJsKfguEBFAoxhMc6B6LJBRA/exec";
 
     const REFRESH_INTERVAL_MS = 15000;
-    const MAX_ROWS = 21;       // Extracts exact layout grid bounds (A1:O21)
+    const MAX_ROWS = 21;       
     const MAX_COLUMNS = 15;    
 
-    // Embedded Vector Image Mapping Matrix for placeholders
-    const BADGE_MAPPING = {
-        "default": "data:image/svg+xml;utf8,<svg xmlns='http://w3.org' viewBox='0 0 24 24' fill='%23718096'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z'/></svg>"
+    const BADGE_COLLECTION = {
+      "default": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23718096'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z'/></svg>"
     };
 
     const destination = document.getElementById("table-destination");
@@ -156,8 +149,14 @@
         "<": "&lt;",
         ">": "&gt;",
         '"': "&quot;",
-        "'": "'"
+        "'": "&#39;"
       })[character]);
+    }
+
+    function dynamicBadgeSelector(teamStringName) {
+      if (!teamStringName) return BADGE_COLLECTION["default"];
+      const mappingKey = teamStringName.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
+      return BADGE_COLLECTION[mappingKey] || BADGE_COLLECTION["default"];
     }
 
     function setStatus(state, message) {
@@ -178,16 +177,10 @@
       document.getElementById("retry-button").addEventListener("click", loadTournamentData);
     }
 
-    function getBadgeURI(teamName) {
-        if (!teamName) return BADGE_MAPPING["default"];
-        const cleanName = teamName.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
-        return BADGE_MAPPING[cleanName] || BADGE_MAPPING["default"];
-    }
-
     function renderTable(rows) {
       if (!Array.isArray(rows) || rows.length === 0 ||
           rows.every(row => !Array.isArray(row) || row.join("").trim() === "")) {
-        throw new Error("The published CSV returned no rows.");
+        throw new Error("The published CSV returned no rows. Check that the correct worksheet is published to the web.");
       }
 
       const targetRows = rows.slice(0, MAX_ROWS);
@@ -219,16 +212,16 @@
           if (c === 9 || c === 10) classes += " pts-cell";
           
           if (c === 3 || c === 6) {
-              const badgeSrc = getBadgeURI(cellValue);
-              tableHtml += `
-                <td class="${classes.trim()}">
-                    <div class="team-container">
-                        <img class="team-badge" src="${badgeSrc}" alt="badge" />
-                        <span>${escapeHtml(cellValue || "-")}</span>
-                    </div>
-                </td>`;
+            const currentBadgeSrc = dynamicBadgeSelector(cellValue);
+            tableHtml += `
+              <td class="${classes.trim()}">
+                <div class="badge-layout-flex">
+                  <img class="badge-icon-img" src="${currentBadgeSrc}" alt="badge" />
+                  <span>${escapeHtml(cellValue || "-")}</span>
+                </div>
+              </td>`;
           } else {
-              tableHtml += `<td class="${classes.trim()}">${escapeHtml(cellValue || "-")}</td>`;
+            tableHtml += `<td class="${classes.trim()}">${escapeHtml(cellValue || "-")}</td>`;
           }
         }
         tableHtml += "</tr>";
@@ -237,52 +230,81 @@
       tableHtml += "</tbody></table></div>";
 
       if (displayedRows === 0) {
-        tableHtml += '<div class="empty-msg">The worksheet loaded, but no tournament rows were found.</div>';
+        tableHtml += '<div class="empty-msg">The worksheet loaded, but no tournament rows were found below the header.</div>';
       }
       destination.innerHTML = tableHtml;
-      setStatus("connected", "Live Sync Active");
-      lastUpdated.textContent = "Last updated: " + new Date().toLocaleTimeString();
     }
 
     let isLoading = false;
 
-    async function loadTournamentData() {
-      if (isLoading) return;
-      isLoading = true;
+async function loadTournamentData() {
+  if (isLoading) return;
+  isLoading = true;
 
-      setStatus("loading", "Syncing tournament data…");
+  setStatus("loading", "Syncing tournament data…");
 
-      const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 12000);
-try {
-const separator = csvSourceUrl.includes("?") ? "&" : "?";
-const freshUrl = csvSourceUrl + separator + "_refresh=" + Date.now();
-const response = await fetch(freshUrl, {
-cache: "no-store",
-signal: controller.signal
-});
-clearTimeout(timeoutId);
-if (!response.ok) throw new Error("Server rejected data connection.");
-const rawText = await response.text();
-Papa.parse(rawText, {
-header: false,
-skipEmptyLines: 'greedy',
-complete: function(results) {
-renderTable(results.data);
-isLoading = false;
-},
-error: function(parseError) {
-showError("Parsing Error: " + parseError.message);
-isLoading = false;
-}
-});
-} catch (err) {
-clearTimeout(timeoutId);
-showError(err.message);
-isLoading = false;
-}
-}
-// Initialize core loops
-loadTournamentData();
-setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000);
 
+  try {
+    const separator = csvSourceUrl.includes("?") ? "&" : "?";
+    const freshUrl =
+      csvSourceUrl + separator + "_refresh=" + Date.now();
+
+    const response = await fetch(freshUrl, {
+      cache: "no-store",
+      signal: controller.signal
+    });
+
+    if (!response.ok) {
+      throw new Error("Google Sheets returned HTTP " + response.status);
+    }
+
+    const csvText = await response.text();
+
+    if (!csvText.trim()) {
+      throw new Error("Google Sheets returned an empty CSV.");
+    }
+
+    if (/^\s*<(?:!doctype|html)/i.test(csvText)) {
+      throw new Error("Google returned HTML instead of CSV data.");
+    }
+
+    if (typeof Papa === "undefined") {
+      throw new Error("Papa Parse library did not load.");
+    }
+
+    const results = Papa.parse(csvText, {
+      skipEmptyLines: true
+    });
+
+    if (results.errors && results.errors.length) {
+      console.warn("CSV parsing warnings:", results.errors);
+    }
+
+    renderTable(results.data);
+
+    setStatus("connected", "Live Syncing — refreshes every 15s");
+    lastUpdated.textContent =
+      "Last updated: " + new Date().toLocaleTimeString();
+
+  } catch (error) {
+    console.error("Tournament data loading failed:", error);
+
+    const message = error.name === "AbortError"
+      ? "Google Sheets took too long to respond. Please retry."
+      : error.message || "Unable to load tournament data.";
+
+    showError(message);
+
+  } finally {
+    clearTimeout(timeoutId);
+    isLoading = false;
+  }
+}
+
+    loadTournamentData();
+    setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
