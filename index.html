@@ -192,6 +192,7 @@
         if (!row || row.join("").trim() === "") continue;
         tableHtml += "<tr>";
         
+        // FIXED: Explicitly targets column index 2 (Column C) to extract only the text name of the team
         const activeTeamName = row[2] ? String(row[2]).trim() : '';
 
         for (let c = 0; c < columnCount; c++) {
@@ -295,4 +296,3 @@
   </script>
 </body>
 </html>
-
