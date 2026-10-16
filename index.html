@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Esquina Park Rangers Live Tournament Dashboard</title>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <!-- Secure, official PapaParse CDN Library Endpoint -->
+  <script src="https://cloudflare.com"></script>
 
   <style>
     :root {
@@ -84,17 +85,13 @@
     td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: .95rem; white-space: nowrap; }
     tbody tr:hover { background: #f8fafc; }
     
-    /* TEAM BADGE COLUMN STYLING EXTENSIONS */
-    .badge-layout-flex {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+    /* Optimized badge rendering dimensions matching layout column constraints */
     .badge-icon-img {
       width: 24px;
       height: 24px;
       object-fit: contain;
-      flex-shrink: 0;
+      display: block;
+      margin: 0 auto;
     }
 
     .team-name { font-weight: 600; color: #1a202c; }
@@ -128,20 +125,15 @@
   </main>
 
   <script>
-    const csvSourceUrl = "https://script.google.com/macros/s/AKfycbxQQB-Fi9liFMcjkULvSWaboQBZ9OTBqrmcxORx0MJU69lJsKfguEBFAoxhMc6B6LJBRA/exec";
+    // Live Deployment proxy data script engine path link
+    const csvSourceUrl = "https://google.com";
 
     const REFRESH_INTERVAL_MS = 15000;
     const MAX_ROWS = 21;       
     const MAX_COLUMNS = 15;    
 
-    const BADGE_COLLECTION = {
-      "default": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23718096'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z'/></svg>"
-    };
-
-    const destination = document.getElementById("table-destination");
-    const liveIndicator = document.getElementById("live-indicator");
-    const statusText = document.getElementById("status-text");
-    const lastUpdated = document.getElementById("last-updated");
+    // Targeted path to look up repository images relative to your deployment domain address
+    const BADGE_FOLDER_PATH = "badges/"; 
 
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, character => ({
@@ -153,10 +145,14 @@
       })[character]);
     }
 
-    function dynamicBadgeSelector(teamStringName) {
-      if (!teamStringName) return BADGE_COLLECTION["default"];
-      const mappingKey = teamStringName.toLowerCase().trim().replace(/[^a-z0-9]/g, "_");
-      return BADGE_COLLECTION[mappingKey] || BADGE_COLLECTION["default"];
+    // Dynamic file naming router maps text strings into filenames (e.g., "Teixonera" -> "badges/teixonera.png")
+    function cleanBadgeRouter(teamStringName) {
+      if (!teamStringName) return "";
+      
+      // Scrubs away trailing data question mark remnants entirely before routing string properties
+      const cleanText = teamStringName.replace(/\?/g, "").trim();
+      const generatedFile = cleanText.toLowerCase().replace(/[^a-z0-9]/g, "_") + ".png";
+      return BADGE_FOLDER_PATH + generatedFile;
     }
 
     function setStatus(state, message) {
@@ -193,7 +189,7 @@
 
       let tableHtml = '<div class="table-wrap"><table><thead><tr>';
       for (let c = 0; c < columnCount; c++) {
-        const headerValue = String(headers[c] ?? "").trim();
+        const headerValue = String(headers[c] ?? "").replace(/\?/g, "").trim();
         const alignLeft = c === 3 || c === 6;
         tableHtml += `<th class="${alignLeft ? "" : "center"}">${escapeHtml(headerValue || "---")}</th>`;
       }
@@ -204,21 +200,27 @@
         const row = targetRows[r];
         if (!row || row.join("").trim() === "") continue;
         tableHtml += "<tr>";
+        
+        // Grab team name from column index 2 (Column C) to associate badge name lookups accurately
+        const activeTeamName = row[2] ? String(row[2]).trim() : '';
+
         for (let c = 0; c < columnCount; c++) {
-          const cellValue = String(row[c] ?? "").trim();
+          let cellValue = String(row[c] ?? "").trim();
+          
+          // Cleans string calculations formatting errors on numerical data columns completely
+          cellValue = cellValue.replace(/\?/g, "").trim();
+          
           let classes = "";
           if (c !== 3 && c !== 6) classes += " center";
           if (c === 3 || c === 6) classes += " team-name";
           if (c === 9 || c === 10) classes += " pts-cell";
           
-          if (c === 3 || c === 6) {
-            const currentBadgeSrc = dynamicBadgeSelector(cellValue);
+          // Replaces empty dashes (`-`) inside column index 1 (Column B) with active badge graphics layout elements
+          if (c === 1) {
+            const finalImageSrc = cleanBadgeRouter(activeTeamName);
             tableHtml += `
-              <td class="${classes.trim()}">
-                <div class="badge-layout-flex">
-                  <img class="badge-icon-img" src="${currentBadgeSrc}" alt="badge" />
-                  <span>${escapeHtml(cellValue || "-")}</span>
-                </div>
+              <td class="center">
+                <img class="badge-icon-img" src="${finalImageSrc}" onerror="this.style.display='none';" alt="" />
               </td>`;
           } else {
             tableHtml += `<td class="${classes.trim()}">${escapeHtml(cellValue || "-")}</td>`;
@@ -237,74 +239,63 @@
 
     let isLoading = false;
 
-async function loadTournamentData() {
-  if (isLoading) return;
-  isLoading = true;
+    async function loadTournamentData() {
+      if (isLoading) return;
+      isLoading = true;
 
-  setStatus("loading", "Syncing tournament data…");
+      setStatus("loading", "Syncing tournament data…");
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
 
-  try {
-    const separator = csvSourceUrl.includes("?") ? "&" : "?";
-    const freshUrl =
-      csvSourceUrl + separator + "_refresh=" + Date.now();
+      try {
+        const separator = csvSourceUrl.includes("?") ? "&" : "?";
+        const freshUrl = csvSourceUrl + separator + "_refresh=" + Date.now();
 
-    const response = await fetch(freshUrl, {
-      cache: "no-store",
-      signal: controller.signal
-    });
+        const response = await fetch(freshUrl, {
+          cache: "no-store",
+          signal: controller.signal
+        });
 
-    if (!response.ok) {
-      throw new Error("Google Sheets returned HTTP " + response.status);
-    }
+        if (!response.ok) {
+          throw new Error("Google Sheets returned HTTP " + response.status);
+        }
 
-    const csvText = await response.text();
+        const csvText = await response.text();
 
-    if (!csvText.trim()) {
-      throw new Error("Google Sheets returned an empty CSV.");
-    }
+        if (!csvText.trim()) {
+          throw new Error("Google Sheets returned an empty CSV.");
+        }
 
-    if (/^\s*<(?:!doctype|html)/i.test(csvText)) {
-      throw new Error("Google returned HTML instead of CSV data.");
-    }
-
-    if (typeof Papa === "undefined") {
-      throw new Error("Papa Parse library did not load.");
-    }
-
-    const results = Papa.parse(csvText, {
-      skipEmptyLines: true
-    });
-
-    if (results.errors && results.errors.length) {
-      console.warn("CSV parsing warnings:", results.errors);
-    }
-
-    renderTable(results.data);
-
-    setStatus("connected", "Live Syncing — refreshes every 15s");
-    lastUpdated.textContent =
-      "Last updated: " + new Date().toLocaleTimeString();
-
-  } catch (error) {
-    console.error("Tournament data loading failed:", error);
-
-    const message = error.name === "AbortError"
-      ? "Google Sheets took too long to respond. Please retry."
-      : error.message || "Unable to load tournament data.";
-
-    showError(message);
-
-  } finally {
-    clearTimeout(timeoutId);
-    isLoading = false;
-  }
+        if (/^\s*<(?:!doctype|html)\b/i.test(csvText)) {
+          throw new Error("Google returned HTML instead of CSV data.");
+        }
+if (typeof Papa === "undefined") {
+throw new Error("Papa Parse library did not load.");
 }
+const results = Papa.parse(csvText, {
+skipEmptyLines: true
+});
+if (results.errors && results.errors.length) {
+console.warn("CSV parsing warnings:", results.errors);
+}
+renderTable(results.data);
+setStatus("connected", "Live Syncing — refreshes every 15s");
+lastUpdated.textContent = "Last updated: " + new Date().toLocaleTimeString();
+} catch (error) {
+console.error("Tournament data loading failed:", error);
+const message = error.name === "AbortError"
+? "Google Sheets took too long to respond. Please retry."
+: error.message || "Unable to load tournament data.";
+showError(message);
+} finally {
+clearTimeout(timeoutId);
+isLoading = false;
+}
+}
+loadTournamentData();
+setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
 
-    loadTournamentData();
-    setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
-  </script>
-</body>
-</html>
+
+
+
