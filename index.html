@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Esquina Park Rangers Live Tournament Dashboard</title>
 
-  <!-- Secure, official PapaParse CDN Library Endpoint -->
-  <script src="https://cloudflare.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 
   <style>
     :root {
@@ -85,7 +84,6 @@
     td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: .95rem; white-space: nowrap; }
     tbody tr:hover { background: #f8fafc; }
     
-    /* Optimized badge rendering dimensions matching layout column constraints */
     .badge-icon-img {
       width: 24px;
       height: 24px;
@@ -93,7 +91,6 @@
       display: block;
       margin: 0 auto;
     }
-
     .team-name { font-weight: 600; color: #1a202c; }
     .pts-cell { font-weight: bold; color: var(--primary); background: #e8f5e9; text-align: center; }
     .center { text-align: center; }
@@ -125,14 +122,12 @@
   </main>
 
   <script>
-    // Live Deployment proxy data script engine path link
-    const csvSourceUrl = "https://google.com";
+    const csvSourceUrl = "https://script.google.com/macros/s/AKfycbxQQB-Fi9liFMcjkULvSWaboQBZ9OTBqrmcxORx0MJU69lJsKfguEBFAoxhMc6B6LJBRA/exec";
 
     const REFRESH_INTERVAL_MS = 15000;
     const MAX_ROWS = 21;       
     const MAX_COLUMNS = 15;    
 
-    // Targeted path to look up repository images relative to your deployment domain address
     const BADGE_FOLDER_PATH = "badges/"; 
 
     function escapeHtml(value) {
@@ -145,11 +140,8 @@
       })[character]);
     }
 
-    // Dynamic file naming router maps text strings into filenames (e.g., "Teixonera" -> "badges/teixonera.png")
     function cleanBadgeRouter(teamStringName) {
       if (!teamStringName) return "";
-      
-      // Scrubs away trailing data question mark remnants entirely before routing string properties
       const cleanText = teamStringName.replace(/\?/g, "").trim();
       const generatedFile = cleanText.toLowerCase().replace(/[^a-z0-9]/g, "_") + ".png";
       return BADGE_FOLDER_PATH + generatedFile;
@@ -172,7 +164,6 @@
         </div>`;
       document.getElementById("retry-button").addEventListener("click", loadTournamentData);
     }
-
     function renderTable(rows) {
       if (!Array.isArray(rows) || rows.length === 0 ||
           rows.every(row => !Array.isArray(row) || row.join("").trim() === "")) {
@@ -201,13 +192,10 @@
         if (!row || row.join("").trim() === "") continue;
         tableHtml += "<tr>";
         
-        // Grab team name from column index 2 (Column C) to associate badge name lookups accurately
         const activeTeamName = row[2] ? String(row[2]).trim() : '';
 
         for (let c = 0; c < columnCount; c++) {
           let cellValue = String(row[c] ?? "").trim();
-          
-          // Cleans string calculations formatting errors on numerical data columns completely
           cellValue = cellValue.replace(/\?/g, "").trim();
           
           let classes = "";
@@ -215,7 +203,6 @@
           if (c === 3 || c === 6) classes += " team-name";
           if (c === 9 || c === 10) classes += " pts-cell";
           
-          // Replaces empty dashes (`-`) inside column index 1 (Column B) with active badge graphics layout elements
           if (c === 1) {
             const finalImageSrc = cleanBadgeRouter(activeTeamName);
             tableHtml += `
@@ -270,32 +257,42 @@
         if (/^\s*<(?:!doctype|html)\b/i.test(csvText)) {
           throw new Error("Google returned HTML instead of CSV data.");
         }
-if (typeof Papa === "undefined") {
-throw new Error("Papa Parse library did not load.");
-}
-const results = Papa.parse(csvText, {
-skipEmptyLines: true
-});
-if (results.errors && results.errors.length) {
-console.warn("CSV parsing warnings:", results.errors);
-}
-renderTable(results.data);
-setStatus("connected", "Live Syncing — refreshes every 15s");
-lastUpdated.textContent = "Last updated: " + new Date().toLocaleTimeString();
-} catch (error) {
-console.error("Tournament data loading failed:", error);
-const message = error.name === "AbortError"
-? "Google Sheets took too long to respond. Please retry."
-: error.message || "Unable to load tournament data.";
-showError(message);
-} finally {
-clearTimeout(timeoutId);
-isLoading = false;
-}
-}
-loadTournamentData();
-setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
 
+        if (typeof Papa === "undefined") {
+          throw new Error("Papa Parse library did not load.");
+        }
 
+        const results = Papa.parse(csvText, {
+          skipEmptyLines: true
+        });
 
+        if (results.errors && results.errors.length) {
+          console.warn("CSV parsing warnings:", results.errors);
+        }
+
+        renderTable(results.data);
+
+        setStatus("connected", "Live Syncing — refreshes every 15s");
+        lastUpdated.textContent = "Last updated: " + new Date().toLocaleTimeString();
+
+      } catch (error) {
+        console.error("Tournament data loading failed:", error);
+
+        const message = error.name === "AbortError"
+          ? "Google Sheets took too long to respond. Please retry."
+          : error.message || "Unable to load tournament data.";
+
+        showError(message);
+
+      } finally {
+        clearTimeout(timeoutId);
+        isLoading = false;
+      }
+    }
+
+    loadTournamentData();
+    setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
+  </script>
+</body>
+</html>
 
