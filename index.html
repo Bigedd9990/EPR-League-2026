@@ -3,273 +3,395 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Esquina Park Rangers Live Tournament Dashboard</title>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-
+  <title>Esquina Park Rangers — Day 1 Live Results</title>
   <style>
     :root {
-      --primary: #1b4332;
-      --accent: #40916c;
-      --bg: #f4f6f9;
-      --card: #ffffff;
-      --text: #2d3748;
-      --muted: #718096;
-      --error: #c53030;
-      --success: #52b788;
+      --maroon: #71364B;
+      --maroon-dark: #4B2433;
+      --blue: #B9E6F5;
+      --page: #f3f6f9;
+      --ink: #283443;
+      --line: #d9e0e7;
+      --white: #fff;
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--ink);
+      background: var(--page);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
-    header {
-      background: linear-gradient(135deg, var(--primary), var(--accent));
+    .site-header {
+      flex: 0 0 auto;
+      background: var(--maroon);
       color: white;
-      text-align: center;
-      padding: 2.5rem 1rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,.1);
+      padding: 12px 22px 10px;
+      box-shadow: 0 3px 10px #0002;
+      z-index: 2;
     }
-    header h1 {
-      margin: 0;
-      font-size: clamp(1.5rem, 3vw, 2rem);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    header p { margin: .5rem 0 0; opacity: .9; font-size: 1.1rem; }
-    .live-indicator {
-      display: inline-flex;
+    .header-main {
+      display: grid;
+      grid-template-columns: minmax(82px, 150px) 1fr minmax(82px, 150px);
       align-items: center;
-      gap: 7px;
-      background: rgba(255,255,255,.2);
-      padding: .45rem .85rem;
-      border-radius: 20px;
-      font-size: .85rem;
-      margin-top: 1rem;
-      font-weight: bold;
+      gap: 18px;
+      max-width: 1800px;
+      margin: 0 auto;
     }
-    .dot {
-      width: 8px;
-      height: 8px;
-      background: #cbd5e0;
+    .brand-badge {
+      width: clamp(76px, 8vw, 124px);
+      height: clamp(76px, 8vw, 124px);
+      object-fit: contain;
+      justify-self: center;
+      background: #fff;
       border-radius: 50%;
-      flex: 0 0 8px;
+      padding: 4px;
     }
-    .live-indicator.connected .dot { background: var(--success); animation: blink 1.5s infinite; }
-    .live-indicator.failed .dot { background: #ffb4a2; }
-    @keyframes blink { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
-    main { width: 95%; max-width: 1400px; margin: 2rem auto; }
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,.05);
-      padding: clamp(1rem, 2vw, 1.5rem);
-      overflow-x: auto;
-      min-height: 165px;
+    .heading { text-align: center; min-width: 0; }
+    h1 {
+      font-size: clamp(22px, 2.6vw, 42px);
+      line-height: 1.05;
+      margin: 0 0 7px;
+      letter-spacing: .035em;
     }
-    .table-wrap { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px; }
-    th {
-      background: #edf2f7;
-      padding: 12px;
-      font-weight: 600;
-      color: #4a5568;
-      text-transform: uppercase;
-      font-size: .85rem;
+    .cup-title {
+      color: var(--blue);
+      font-size: clamp(13px, 1.35vw, 21px);
+      font-weight: 800;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+    .event-date {
+      font-size: clamp(12px, 1.15vw, 18px);
+      font-weight: 700;
+    }
+    .header-bottom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+      font-size: clamp(12px, 1vw, 16px);
+    }
+    .clock {
+      color: var(--blue);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: .04em;
       white-space: nowrap;
     }
-    td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: .95rem; white-space: nowrap; }
-    tbody tr:hover { background: #f8fafc; }
-    .team-name { font-weight: 600; color: #1a202c; }
-    .pts-cell { font-weight: bold; color: var(--primary); background: #e8f5e9; text-align: center; }
-    .center { text-align: center; }
-    .loading, .error-msg, .empty-msg { text-align: center; padding: 3rem 1rem; }
-    .loading, .empty-msg { font-style: italic; color: var(--muted); }
-    .error-msg { color: var(--error); font-weight: bold; overflow-wrap: anywhere; }
-    .error-detail { display: block; margin-top: .6rem; font-size: .9rem; font-weight: normal; color: var(--muted); }
-    .footer { color: var(--muted); font-size: .8rem; text-align: right; margin-top: 1rem; }
-    .retry { margin-top: 1rem; border: 0; border-radius: 6px; padding: .65rem 1rem; cursor: pointer; background: var(--primary); color: white; font-weight: 600; }
+    .nav { display: flex; gap: 8px; }
+    .nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 7px 13px;
+      border: 1px solid #ffffff70;
+      border-radius: 7px;
+    }
+    .nav a.active, .nav a:hover { background: var(--blue); color: var(--maroon-dark); }
+    .status { opacity: .9; font-size: 12px; }
+    .board-scroll {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px clamp(10px, 2vw, 28px) 24px;
+      scroll-behavior: smooth;
+    }
+    .board {
+      max-width: 1800px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      align-items: start;
+      gap: 20px;
+    }
+    .pitch-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: 0 4px 14px #17212b12;
+      min-width: 0;
+    }
+    .pitch-card.pitch-3 {
+      grid-column: 1 / -1;
+      width: min(100%, 900px);
+      justify-self: center;
+    }
+    .pitch-heading {
+      margin: 0;
+      padding: 11px 16px;
+      background: var(--maroon);
+      color: white;
+      font-size: clamp(18px, 1.7vw, 26px);
+      letter-spacing: .03em;
+    }
+    .pitch-heading span { color: var(--blue); }
+    table { width: 100%; border-collapse: collapse; table-layout: auto; }
+    th {
+      background: #f0e7eb;
+      color: var(--maroon-dark);
+      font-size: 12px;
+      text-align: left;
+      padding: 8px 9px;
+      white-space: nowrap;
+    }
+    td {
+      padding: 10px 9px;
+      border-bottom: 1px solid var(--line);
+      font-size: clamp(13px, 1.1vw, 17px);
+      vertical-align: middle;
+    }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .time-cell { white-space: nowrap; font-weight: 700; width: 1%; }
+    .group-cell { white-space: nowrap; color: #596575; font-size: .9em; }
+    .team-cell { font-weight: 800; min-width: 0; }
+    .team-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .team-name { overflow-wrap: anywhere; }
+    .team-badge {
+      width: clamp(24px, 2.4vw, 38px);
+      height: clamp(24px, 2.4vw, 38px);
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+    .score-cell {
+      font-weight: 900;
+      font-size: clamp(16px, 1.35vw, 21px);
+      text-align: center;
+      white-space: nowrap;
+      width: 1%;
+    }
+    .score-dash { color: #8792a0; padding: 0 3px; }
+    .loading, .error {
+      background: white;
+      padding: 24px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: 700;
+    }
+    .error { color: #a12626; }
+    .site-footer {
+      flex: 0 0 auto;
+      background: var(--maroon-dark);
+      color: white;
+      text-align: center;
+      padding: 7px 10px;
+      font-size: 11px;
+      letter-spacing: .08em;
+    }
+    @media (max-width: 760px) {
+      body { overflow: auto; }
+      .site-header { padding: 10px; }
+      .header-main { grid-template-columns: 64px 1fr 64px; gap: 8px; }
+      .brand-badge { width: 60px; height: 60px; }
+      .board-scroll { overflow: visible; }
+      .board { grid-template-columns: 1fr; }
+      .pitch-card.pitch-3 { grid-column: auto; width: 100%; }
+      .header-bottom { gap: 10px; }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Esquina Park Rangers</h1>
-    <p>5th Annual International Tournament Dashboard</p>
-    <div class="live-indicator" id="live-indicator" aria-live="polite">
-      <span class="dot"></span>
-      <span id="status-text">Connecting to Google Sheets…</span>
+  <header class="site-header">
+    <div class="header-main">
+      <img class="brand-badge" src="esquina-badge.png" alt="Esquina Park Rangers badge">
+      <div class="heading">
+        <h1>ESQUINA PARK RANGERS</h1>
+        <div class="cup-title">INTERNATIONAL WALKING FOOTBALL CUP</div>
+        <div class="event-date">5th &amp; 6th November 2026</div>
+      </div>
+      <img class="brand-badge" src="badges/Rojales.png" alt="Rojales Council badge">
+    </div>
+    <div class="header-bottom">
+      <div class="clock" id="clock">--:--:--</div>
+      <nav class="nav" aria-label="Tournament days">
+        <a class="active" href="day1.html">DAY 1</a>
+        <a href="day2.html">DAY 2</a>
+      </nav>
+      <div class="status" id="status">Loading tournament results…</div>
     </div>
   </header>
 
-  <main>
-    <div class="card">
-      <div id="table-destination" aria-live="polite">
-        <div class="loading">Loading tournament data from Google Sheets…</div>
-      </div>
-      <div class="footer" id="last-updated"></div>
+  <main class="board-scroll" id="boardScroll">
+    <div id="board" class="board">
+      <div class="loading">Loading Day 1 fixtures from Google Sheets…</div>
     </div>
   </main>
+  <footer class="site-footer">ESQUINA PARK RANGERS · LIVE TOURNAMENT CENTRE</footer>
 
   <script>
-    // Published CSV for the requested worksheet tab (gid=198337941).
-    const csvSourceUrl = "https://script.google.com/macros/s/AKfycbxQQB-Fi9liFMcjkULvSWaboQBZ9OTBqrmcxORx0MJU69lJsKfguEBFAoxhMc6B6LJBRA/exec";
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTeEkmGfdMyY5ILwraF8-Axuzx8-U5IAgNO9NYzd9ua-ogBiwaMMKKAq7zpK2lBseMnJ4WAC-AQ1Glv/pub?gid=1887191572&single=true&output=csv";
+    const REFRESH_SECONDS = 30;
+    const SCROLL_PAUSE_MS = 4500;
+    const SCROLL_PIXELS_PER_SECOND = 24;
 
-    const REFRESH_INTERVAL_MS = 15000;
-    const MAX_ROWS = 21;       // Header row plus up to 20 data rows
-    const MAX_COLUMNS = 15;    // Columns A to O
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false
+      }).format(now);
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
 
-    const destination = document.getElementById("table-destination");
-    const liveIndicator = document.getElementById("live-indicator");
-    const statusText = document.getElementById("status-text");
-    const lastUpdated = document.getElementById("last-updated");
-
-    function escapeHtml(value) {
-      return String(value ?? "").replace(/[&<>"']/g, character => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;"
-      })[character]);
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], field = "", quoted = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i], next = text[i + 1];
+        if (c === '"' && quoted && next === '"') { field += '"'; i++; }
+        else if (c === '"') { quoted = !quoted; }
+        else if (c === "," && !quoted) { row.push(field.trim()); field = ""; }
+        else if ((c === "\n" || c === "\r") && !quoted) {
+          if (c === "\r" && next === "\n") i++;
+          row.push(field.trim());
+          if (row.some(v => v !== "")) rows.push(row);
+          row = []; field = "";
+        } else field += c;
+      }
+      if (field.length || row.length) {
+        row.push(field.trim());
+        if (row.some(v => v !== "")) rows.push(row);
+      }
+      return rows;
     }
 
-    function setStatus(state, message) {
-      liveIndicator.classList.remove("connected", "failed");
-      if (state === "connected") liveIndicator.classList.add("connected");
-      if (state === "failed") liveIndicator.classList.add("failed");
-      statusText.textContent = message;
+    function escapeHTML(value) {
+      return String(value ?? "").replace(/[&<>"']/g, ch => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[ch]));
     }
 
-    function showError(message) {
-      setStatus("failed", "Connection problem — retrying every 15s");
-      destination.innerHTML = `
-        <div class="error-msg">
-          Google Sheets data could not be displayed.
-          <span class="error-detail">${escapeHtml(message)}</span>
-          <button class="retry" type="button" id="retry-button">Try again now</button>
-        </div>`;
-      document.getElementById("retry-button").addEventListener("click", loadTournamentData);
+    function teamBadge(name) {
+      const safe = String(name || "").trim();
+      if (!safe) return "";
+      const encoded = encodeURIComponent(safe);
+      const lower = encodeURIComponent(safe.toLowerCase());
+      return `<img class="team-badge" src="badges/${encoded}.png" alt="" loading="lazy"
+        onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src='badges/${lower}.png'}else{this.style.display='none'}">`;
     }
 
-    function renderTable(rows) {
-      if (!Array.isArray(rows) || rows.length === 0 ||
-          rows.every(row => !Array.isArray(row) || row.join("").trim() === "")) {
-        throw new Error("The published CSV returned no rows. Check that the correct worksheet is published to the web.");
-      }
+    function teamCell(name) {
+      const clean = String(name || "").trim();
+      return `<td class="team-cell"><div class="team-wrap">${teamBadge(clean)}<span class="team-name">${escapeHTML(clean || "TBC")}</span></div></td>`;
+    }
 
-      const targetRows = rows.slice(0, MAX_ROWS);
-      const headers = targetRows[0] || [];
-      const columnCount = Math.min(MAX_COLUMNS, Math.max(headers.length, ...targetRows.map(row => row.length)));
+    function pitchCard(pitch, fixtures) {
+      const rows = fixtures.map(cells => {
+        // Columns A-G: A time, B pitch, C group, D team 1, E score 1, F score 2, G team 2.
+        const time = cells[0] || "";
+        const group = cells[2] || "";
+        const team1 = cells[3] || "";
+        const score1 = cells[4] || "";
+        const score2 = cells[5] || "";
+        const team2 = cells[6] || "";
+        return `<tr>
+          <td class="time-cell">${escapeHTML(time)}</td>
+          <td class="group-cell">${escapeHTML(group)}</td>
+          ${teamCell(team1)}
+          <td class="score-cell">${escapeHTML(score1)}<span class="score-dash">–</span>${escapeHTML(score2)}</td>
+          ${teamCell(team2)}
+        </tr>`;
+      }).join("");
 
-      if (!columnCount) {
-        throw new Error("No columns were found in the published sheet.");
-      }
+      return `<section class="pitch-card ${pitch === "3" ? "pitch-3" : ""}">
+        <h2 class="pitch-heading">PITCH <span>${escapeHTML(pitch)}</span></h2>
+        <table>
+          <thead><tr><th>TIME</th><th>GROUP</th><th colspan="1">TEAM 1</th><th>SCORE</th><th>TEAM 2</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="5">No fixtures found for this pitch.</td></tr>'}</tbody>
+        </table>
+      </section>`;
+    }
 
-      let tableHtml = '<div class="table-wrap"><table><thead><tr>';
-      for (let c = 0; c < columnCount; c++) {
-        const headerValue = String(headers[c] ?? "").trim();
-        const alignLeft = c === 3 || c === 6;
-        tableHtml += `<th class="${alignLeft ? "" : "center"}">${escapeHtml(headerValue || "---")}</th>`;
-      }
-      tableHtml += "</tr></thead><tbody>";
-
-      let displayedRows = 0;
-      for (let r = 1; r < targetRows.length; r++) {
-        const row = targetRows[r];
-        if (!row || row.join("").trim() === "") continue;
-        tableHtml += "<tr>";
-        for (let c = 0; c < columnCount; c++) {
-          const cellValue = String(row[c] ?? "").trim();
-          let classes = "";
-          if (c !== 3 && c !== 6) classes += " center";
-          if (c === 3 || c === 6) classes += " team-name";
-          if (c === 9 || c === 10) classes += " pts-cell";
-          tableHtml += `<td class="${classes.trim()}">${escapeHtml(cellValue || "-")}</td>`;
+    function startAutoScroll() {
+      const container = document.getElementById("boardScroll");
+      if (window.matchMedia("(max-width: 760px)").matches) return;
+      if (window.boardScrollTimer) clearTimeout(window.boardScrollTimer);
+      if (window.boardAnimationFrame) cancelAnimationFrame(window.boardAnimationFrame);
+      container.scrollTop = 0;
+      let direction = 1, last = 0, pauseUntil = performance.now() + SCROLL_PAUSE_MS;
+      function step(now) {
+        if (!last) last = now;
+        const delta = Math.min(50, now - last);
+        last = now;
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        if (maxScroll <= 2) {
+          window.boardScrollTimer = setTimeout(() => {
+            container.scrollTop = 0;
+            startAutoScroll();
+          }, REFRESH_SECONDS * 1000);
+          return;
         }
-        tableHtml += "</tr>";
-        displayedRows++;
+        if (now >= pauseUntil) {
+          container.scrollTop += direction * SCROLL_PIXELS_PER_SECOND * delta / 1000;
+          if (container.scrollTop >= maxScroll - 1) {
+            container.scrollTop = maxScroll;
+            direction = -1;
+            pauseUntil = now + SCROLL_PAUSE_MS;
+          } else if (container.scrollTop <= 0 && direction === -1) {
+            container.scrollTop = 0;
+            direction = 1;
+            pauseUntil = now + SCROLL_PAUSE_MS;
+          }
+        }
+        window.boardAnimationFrame = requestAnimationFrame(step);
       }
-      tableHtml += "</tbody></table></div>";
+      window.boardAnimationFrame = requestAnimationFrame(step);
+    }
 
-      if (displayedRows === 0) {
-        tableHtml += '<div class="empty-msg">The worksheet loaded, but no tournament rows were found below the header.</div>';
+    let hasStartedAutoScroll = false;
+
+    async function loadResults() {
+      const status = document.getElementById("status");
+      try {
+        const response = await fetch(CSV_URL, { cache: "no-store" });
+        if (!response.ok) throw new Error(`Google Sheets returned HTTP ${response.status}`);
+        const csv = await response.text();
+        const allRows = parseCSV(csv);
+
+        // Sheet rows 2–61 are Day 1 fixtures. Skip only the CSV column-heading row.
+        // Do not drop the first fixture from this selected range.
+        const fixtures = allRows.slice(1, 61).map(row => row.slice(0, 7));
+        const byPitch = { "1": [], "2": [], "3": [] };
+        fixtures.forEach(row => {
+          const pitch = String(row[1] || "").trim().replace(/^pitch\s*/i, "");
+          if (byPitch[pitch]) byPitch[pitch].push(row);
+        });
+
+        const scrollContainer = document.getElementById("boardScroll");
+        const previousScrollTop = scrollContainer.scrollTop;
+        document.getElementById("board").innerHTML =
+          pitchCard("1", byPitch["1"]) +
+          pitchCard("2", byPitch["2"]) +
+          pitchCard("3", byPitch["3"]);
+
+        const count = fixtures.length;
+        status.textContent = `${count} fixtures · Updates every 30 seconds`;
+        if (!hasStartedAutoScroll) {
+          hasStartedAutoScroll = true;
+          startAutoScroll();
+        } else {
+          scrollContainer.scrollTop = Math.min(previousScrollTop, scrollContainer.scrollHeight - scrollContainer.clientHeight);
+        }
+      } catch (error) {
+        console.error(error);
+        document.getElementById("board").innerHTML =
+          `<div class="error">Could not load tournament results. Please check the published Google Sheets CSV link and internet connection.<br><small>${escapeHTML(error.message)}</small></div>`;
+        status.textContent = "Results unavailable";
       }
-      destination.innerHTML = tableHtml;
     }
-
-    let isLoading = false;
-
-async function loadTournamentData() {
-  if (isLoading) return;
-  isLoading = true;
-
-  setStatus("loading", "Syncing tournament data…");
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
-
-  try {
-    const separator = csvSourceUrl.includes("?") ? "&" : "?";
-    const freshUrl =
-      csvSourceUrl + separator + "_refresh=" + Date.now();
-
-    const response = await fetch(freshUrl, {
-      cache: "no-store",
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      throw new Error("Google Sheets returned HTTP " + response.status);
-    }
-
-    const csvText = await response.text();
-
-    if (!csvText.trim()) {
-      throw new Error("Google Sheets returned an empty CSV.");
-    }
-
-    if (/^\s*<(?:!doctype|html)\b/i.test(csvText)) {
-      throw new Error("Google returned HTML instead of CSV data.");
-    }
-
-    if (typeof Papa === "undefined") {
-      throw new Error("Papa Parse library did not load.");
-    }
-
-    const results = Papa.parse(csvText, {
-      skipEmptyLines: true
-    });
-
-    if (results.errors && results.errors.length) {
-      console.warn("CSV parsing warnings:", results.errors);
-    }
-
-    renderTable(results.data);
-
-    setStatus("connected", "Live Syncing — refreshes every 15s");
-    lastUpdated.textContent =
-      "Last updated: " + new Date().toLocaleTimeString();
-
-  } catch (error) {
-    console.error("Tournament data loading failed:", error);
-
-    const message = error.name === "AbortError"
-      ? "Google Sheets took too long to respond. Please retry."
-      : error.message || "Unable to load tournament data.";
-
-    showError(message);
-
-  } finally {
-    clearTimeout(timeoutId);
-    isLoading = false;
-  }
-}
-
-    loadTournamentData();
-    setInterval(loadTournamentData, REFRESH_INTERVAL_MS);
+    loadResults();
+    setInterval(loadResults, REFRESH_SECONDS * 1000);
   </script>
 </body>
 </html>
